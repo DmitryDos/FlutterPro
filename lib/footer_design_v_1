@@ -1,0 +1,213 @@
+import 'package:flutter/material.dart';
+
+import 'download_button.dart';
+
+class Footer extends StatefulWidget {
+  final List<Map<String, String>> images;
+  final int likeCount;
+  final bool darkTheme;
+
+  final Function(int) animateSwipe;
+  final Function() changeTheme;
+
+  const Footer({
+    super.key,
+    required this.images,
+    required this.likeCount,
+    required this.darkTheme,
+    required this.animateSwipe,
+    required this.changeTheme,
+  });
+
+  @override
+  State<Footer> createState() => _FooterState();
+}
+
+class _FooterState extends State<Footer> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  bool _isApproveButtonActive = false; // Состояние кнопки "Аппрув"
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.9).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  void _onTapDown() {
+    setState(() {
+      _isApproveButtonActive = true; // Устанавливаем активное состояние
+    });
+    _controller.forward(); // Запускаем анимацию масштабирования
+  }
+
+  void _onTapUp() {
+    _controller.reverse().then((_) {
+      setState(() {
+        _isApproveButtonActive = false; // Сбрасываем активное состояние
+      });
+      widget.animateSwipe(1); // Вызываем переданный коллбэк для "Аппрув"
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final padding = MediaQuery.of(context).padding;
+
+    return Stack(
+      children: [
+        // Основной контейнер футера
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            height: 60 + padding.bottom, // Высота футера
+            padding: EdgeInsets.only(bottom: padding.bottom),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(50), // Уменьшенная тень
+                  blurRadius: 5, // Меньше размытие
+                  spreadRadius: 1,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: Center(
+              child: SizedBox(
+                width: 350,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Кнопка загрузки (самая левая)
+                    UploadButton(images: widget.images),
+                    const SizedBox(width: 10),
+                    // Кнопка "Нет" (крестик)
+                    GestureDetector(
+                      onTap: () => widget.animateSwipe(-1),
+                      child: Image.asset(
+                        fit: BoxFit.cover,
+                        'assets/images/cross.png',
+                        width: 40,
+                        height: 40,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      width: 120,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withAlpha(100),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.red.withAlpha(130)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Icon(Icons.favorite,
+                              color: Colors.red, size: 20),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${widget.likeCount}',
+                            style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.cyan),
+                          ),
+                          const SizedBox(width: 6),
+                          const Icon(Icons.favorite,
+                              color: Colors.red, size: 30),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    // Кнопка смены темы (справа от счётчика)
+                    GestureDetector(
+                      onTap: widget.changeTheme,
+                      child: SizedBox(
+                        width: 50,
+                        height: 50,
+                        child: Image.asset(
+                          widget.darkTheme
+                              ? 'assets/images/lModeD.png'
+                              : 'assets/images/lModeL.png',
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 60),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        // Круглая кнопка "Аппрув" с анимацией
+        Positioned(
+          bottom: 30, // Поднимаем кнопку выше, чтобы она частично обрезалась
+          right: -30, // Сдвигаем кнопку вправо
+          child: GestureDetector(
+            onTapDown: (_) => _onTapDown(), // Начало удержания
+            onTapUp: (_) => _onTapUp(), // Завершение удержания
+            onTapCancel: () {
+              _controller.reverse(); // Отмена анимации, если кнопка отпущена
+              setState(() {
+                _isApproveButtonActive = false;
+              });
+            },
+            child: AnimatedBuilder(
+              animation: _scaleAnimation,
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: _isApproveButtonActive
+                      ? _scaleAnimation.value
+                      : 1.0, // Применяем scale только к активной кнопке
+                  child: child,
+                );
+              },
+              child: Container(
+                width: 120,
+                height: 120,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.black,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(50), // Уменьшенная тень
+                      blurRadius: 5, // Меньше размытие
+                      spreadRadius: 1,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Image.asset(
+                  fit: BoxFit.cover,
+                  'assets/images/fire.png',
+                  width: 50,
+                  height: 50,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
