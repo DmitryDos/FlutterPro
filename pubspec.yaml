@@ -51,11 +51,13 @@ dependencies:
   flutter_colorpicker: ^1.0.3
   image_picker: ^1.1.2
   url_launcher: ^6.1.5
+  intl: ^0.18.1
   dio: ^5.0.0
   path_provider: ^2.0.11
   permission_handler: ^11.4.0
   share_plus: ^10.1.4
   flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.3.7
 #  google_mlkit_face_detection: ^0.12.0
 
 dev_dependencies:
@@ -69,6 +71,16 @@ flutter_icons:
   android: "launcher_icon"
   ios: true
   image_path: "assets/logo.png"
+
+flutter_native_splash:
+  color: "#000000"
+  image: assets/preview.png
+  android: true
+  ios: true
+  android_gravity: center
+  ios_content_mode: scale_aspect_fill
+
+  fullscreen: true  # Для Android (API 21+)
 
 # The following section is specific to Flutter packages.
 flutter:

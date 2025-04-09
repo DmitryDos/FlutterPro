@@ -1,15 +1,18 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter_pro/header.dart';
-import 'package:flutter_pro/pulsular_loader.dart';
-import 'package:flutter_pro/data/user_data.dart';
-import 'package:flutter_pro/utils/utils.dart';
+import 'package:flutter_pro/models/cards_model.dart';
+import 'package:flutter_pro/providers/cards_provider.dart';
+import 'package:flutter_pro/widgets/header.dart';
+import 'package:flutter_pro/widgets/interactive/background.dart';
+import 'package:flutter_pro/widgets/list_screen.dart';
+import 'package:flutter_pro/widgets/pulsular_loader.dart';
+import 'package:flutter_pro/providers/user_provider.dart';
 import 'package:provider/provider.dart';
-import 'cards/card_provider.dart';
-import 'footer.dart';
-import 'image_service.dart';
-import 'menu.dart';
-import 'descriptions.dart';
+import 'widgets/cards/card_provider.dart';
+import 'widgets/footer.dart';
+import 'widgets/menu_screen.dart';
+import 'widgets/descriptions.dart';
 
 void main() {
   runApp(const MyApp());
@@ -20,8 +23,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (final context) => UserData.instance,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (final context) => UserData.instance),
+        ChangeNotifierProvider(
+            create: (final context) => LikedCatsProvider.instance),
+      ],
       child: MaterialApp(
         title: 'Cat Tinder',
         theme: ThemeData.dark(),
@@ -39,12 +46,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final List<Map<String, String>> _images = [];
-  final List<Map<String, String>> _lightImageCache = [];
-  final List<Map<String, String>> _darkImageCache = [];
-
-  final int _cacheThreshold = 6;
-
+  final CardsModel _cardsModel = CardsModel();
   bool isLoading = false;
 
   double offsetX = 0;
@@ -85,99 +87,22 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
+    _cardsModel.preloadWelcomeCard();
     super.initState();
-    _preloadWelcomeCard();
   }
 
-  Future<void> _preloadWelcomeCard() async {
-    _images.add({
-      'url': 'preload',
-    });
-    await UserData.instance.loadData();
-    _preloadCards();
+  @override
+  void dispose() {
+    super.dispose();
   }
 
-  Future<void> _preloadFirstCard() async {
-    setState(() => isLoading = true);
-
-    Map<String, String>? newImage = getFromCache();
-
-    if (newImage == null) {
-      final url = ImageService.getUrl();
-      final images = await ImageService.fetchRandomImages(url, 1);
-      if (images != null && images.isNotEmpty) {
-        newImage = images[0];
-      }
-    }
-
-    if (newImage != null) {
-      setState(() {
-        _images.add(newImage!);
-        isLoading = false;
-      });
-      await _preloadCards();
-    }
-  }
-
-  Future<void> _preloadCards() async {
-    final List<Map<String, String>>? newImages =
-        await ImageService.fetchRandomImages(
-            ImageService.getUrl(count: _cacheThreshold), 5);
-
-    if (newImages != null) {
-      setState(() {
-        _images.addAll(newImages);
-      });
-    }
-
-    await _populateCache();
-  }
-
-  Future<void> _populateCache() async {
-    final cache =
-        UserData.instance.darkTheme ? _darkImageCache : _lightImageCache;
-    if (cache.length >= _cacheThreshold) return;
-
-    final url = ImageService.getUrl(count: _cacheThreshold);
-    final images = await ImageService.fetchRandomImages(url, _cacheThreshold);
-
-    if (images != null) {
-      setState(() {
-        cache.addAll(images);
-      });
-    }
-  }
-
-  Future<void> _fetchNewCard() async {
-    final Map<String, String>? newImage = getFromCache();
-
-    UserData.instance.incrementSwipes();
-    if (newImage != null) {
-      setState(() {
-        _images.add(newImage);
-      });
-    }
-
-    await _populateCache();
-  }
-
-  Map<String, String>? getFromCache() {
-    Map<String, String>? newImage;
-
-    if (UserData.instance.darkTheme && _darkImageCache.isNotEmpty) {
-      newImage = _darkImageCache.removeAt(0);
-    } else if (!UserData.instance.darkTheme && _lightImageCache.isNotEmpty) {
-      newImage = _lightImageCache.removeAt(0);
-    }
-
-    return newImage;
-  }
-
-  void changeTheme() {
+  void changeTheme() async {
     UserData.instance.toggleDarkTheme();
+    _cardsModel.clearImages();
+    isLoading = true;
+    await _cardsModel.preloadFirstCard();
     setState(() {
-      _images.clear();
-      _preloadFirstCard();
+      isLoading = false;
     });
   }
 
@@ -214,22 +139,23 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
 
-    if (isLiked == 1) {
+    if (isLiked == 1 && _cardsModel.top().url != 'preload') {
       UserData.instance.incrementLikes();
+      LikedCatsProvider.instance.addCat(_cardsModel.top());
     }
 
     Future.delayed(const Duration(milliseconds: 100), () {
       setState(() {
-        if (_images.isNotEmpty) {
-          _images.removeAt(0);
+        if (_cardsModel.images.isNotEmpty) {
+          _cardsModel.images.removeAt(0);
         }
         resetCardPosition();
       });
 
-      if (_images.length < 2) {
-        _preloadCards();
+      if (_cardsModel.images.length < 2) {
+        _cardsModel.preloadCards();
       }
-      _fetchNewCard();
+      _cardsModel.fetchNewCard();
     });
   }
 
@@ -248,7 +174,7 @@ class _MyHomePageState extends State<MyHomePage> {
         PageRouteBuilder<void>(
           pageBuilder:
               (final context, final animation, final secondaryAnimation) =>
-                  ImageDescriptionScreen(imageData: _images.first),
+                  ImageDescriptionScreen(imageData: _cardsModel.top()),
           transitionsBuilder: (final context, final animation,
               final secondaryAnimation, final child) {
             return FadeTransition(
@@ -281,25 +207,31 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  void openHistory() {
+    Navigator.push(
+      context,
+      PageRouteBuilder<void>(
+        pageBuilder:
+            (final context, final animation, final secondaryAnimation) =>
+                const LikedCardsScreen(),
+        transitionsBuilder: (final context, final animation,
+            final secondaryAnimation, final child) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(final BuildContext context) {
     final userData = Provider.of<UserData>(context);
     return Scaffold(
       body: Stack(
         children: [
-          Container(
-            decoration: isHexColor(userData.selectedBackground)
-                ? BoxDecoration(
-                    color: Color(
-                        int.parse(userData.selectedBackground, radix: 16)),
-                  )
-                : BoxDecoration(
-                    image: DecorationImage(
-                      image: getImageProvider(userData.selectedBackground),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-          ),
+          Background(selectedBackground: userData.selectedBackground),
           AnimatedContainer(
             duration: const Duration(milliseconds: 100),
             decoration: BoxDecoration(
@@ -315,16 +247,17 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
           ),
-          Header(openMenu: openMenu),
+          Header(openMenu: openMenu, openHistory: openHistory),
           Center(
             child: isLoading
                 ? PulsatingCircle(
                     color: userData.darkTheme ? Colors.pink : Colors.purple)
                 : Stack(children: [
-                    for (var i = 0; i < _images.length; i++)
+                    for (var i = 0; i < _cardsModel.images.length; i++)
                       getCard(
-                        imageData: _images[_images.length - i - 1],
-                        number: _images.length - i - 1,
+                        imageData: _cardsModel
+                            .images[_cardsModel.images.length - i - 1],
+                        number: _cardsModel.images.length - i - 1,
                         openDescription: openDescription,
                         onDragUpdate: onDragUpdate,
                         onDragEnd: onDragEnd,
@@ -337,7 +270,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   ]),
           ),
           Footer(
-            images: _images,
+            images: _cardsModel.images,
             darkTheme: userData.darkTheme,
             afterSwipe: afterSwipe,
             changeTheme: changeTheme,

@@ -29,6 +29,34 @@ Future<void> launchURL(final String url) async {
   }
 }
 
+void showNetworkErrorDialog(final BuildContext context,
+    {final VoidCallback? onRetry}) {
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false, // Запрещаем закрытие при клике вне диалога
+    builder: (final context) => AlertDialog(
+      icon: const Icon(Icons.wifi_off, size: 40, color: Colors.red),
+      title: const Text('Нет соединения'),
+      content:
+          const Text('Проверьте подключение к интернету и повторите попытку.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Закрыть'),
+        ),
+        if (onRetry != null)
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              onRetry();
+            },
+            child: const Text('Повторить'),
+          ),
+      ],
+    ),
+  );
+}
+
 // Images Crop around Face - Not Work
 // Future<ui.Image?> cropImageAroundFace(String imageUrl) async {
 //   FaceDetector? faceDetector; // Объявляем переменную здесь
