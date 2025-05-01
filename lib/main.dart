@@ -55,6 +55,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   late final CardsModel _cardsModel;
   bool isLoading = false;
+  bool isOnline = true;
 
   double offsetX = 0;
   double offsetY = 0;
@@ -104,6 +105,19 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void dispose() {
     super.dispose();
+  }
+
+  void checkInternet() {
+    if (_cardsModel.isOnline != isOnline && isOnline == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("У вас проблемы с интернетом!")),
+      );
+    } else if (_cardsModel.isOnline != isOnline && isOnline == false) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Интернет вернулся!")),
+      );
+    }
+    isOnline = _cardsModel.isOnline;
   }
 
   void changeTheme() async {
@@ -165,6 +179,8 @@ class _MyHomePageState extends State<MyHomePage> {
       }
       _cardsModel.fetchNewCard();
     });
+
+    checkInternet();
   }
 
   void saveLikedCard(final ImageDTO image) {

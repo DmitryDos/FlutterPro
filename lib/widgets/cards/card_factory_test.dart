@@ -14,7 +14,7 @@ void main() {
       );
       expect(
         CardFactory.determineCardType(ImageDTO(url: 'noInternet')),
-        CardType.internet,
+        CardType.noInternet,
       );
       expect(
         CardFactory.determineCardType(ImageDTO(url: 'error')),

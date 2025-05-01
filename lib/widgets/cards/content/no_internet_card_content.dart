@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-class RestoreInternetCardContent extends StatefulWidget {
+class NoInternetCardContent extends StatefulWidget {
   final double height;
   final bool showSwipeText;
   final double threshold;
   final Map<String, dynamic>? contentProps;
 
-  const RestoreInternetCardContent({
+  const NoInternetCardContent({
     super.key,
     required this.height,
     this.showSwipeText = false,
@@ -15,12 +15,11 @@ class RestoreInternetCardContent extends StatefulWidget {
   });
 
   @override
-  State<RestoreInternetCardContent> createState() =>
-      _InternetRestoredCardContentState();
+  State<NoInternetCardContent> createState() => _InternetCardContentState();
 }
 
-class _InternetRestoredCardContentState
-    extends State<RestoreInternetCardContent> {
+class _InternetCardContentState extends State<NoInternetCardContent> {
+  bool isInternetErrorEnabled = true;
   bool isDontShowAgainClicked = false;
 
   @override
@@ -63,7 +62,7 @@ class _InternetRestoredCardContentState
                     blurRadius: 20,
                     spreadRadius: 2,
                     offset: Offset(0, 5),
-                  )
+                  ),
                 ],
               ),
               child: Stack(
@@ -72,7 +71,7 @@ class _InternetRestoredCardContentState
                     top: -50,
                     right: -30,
                     child: Icon(
-                      Icons.wifi,
+                      Icons.wifi_off,
                       size: isSmallScreen ? 150 : 200,
                       color: const Color(0x0AFFFFFF),
                     ),
@@ -83,13 +82,13 @@ class _InternetRestoredCardContentState
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          Icons.wifi,
+                          Icons.wifi_off,
                           size: iconSize,
                           color: Colors.white,
                         ),
                         SizedBox(height: isSmallScreen ? 12 : 24),
                         Text(
-                          'Интернет вернулся!',
+                          'Нет соединения',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: titleFontSize,
@@ -103,8 +102,8 @@ class _InternetRestoredCardContentState
                           padding: EdgeInsets.symmetric(
                               horizontal: horizontalTextPadding),
                           child: Text(
-                            'Рады сообщить, что соединение восстановлено! '
-                            'Теперь вы можете просматривать новых котиков.',
+                            'Похоже, у вас проблемы с интернетом. '
+                            'Вы можете просматривать ранее сохранённых котиков.',
                             style: TextStyle(
                               color: const Color(0xCCFFFFFF),
                               fontSize: bodyFontSize,
@@ -114,48 +113,50 @@ class _InternetRestoredCardContentState
                           ),
                         ),
                         SizedBox(height: isSmallScreen ? 20 : 32),
-                        isDontShowAgainClicked
-                            ? Text(
-                                'Больше не будем показывать!',
-                                style: TextStyle(
-                                  color: const Color(0x99FFFFFF),
-                                  fontSize: buttonFontSize,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              )
-                            : InkWell(
-                                onTap: () {
-                                  setState(() {
-                                    isDontShowAgainClicked = true;
-                                  });
-                                  if (widget.contentProps?['onDontShowAgain'] !=
-                                      null) {
-                                    widget.contentProps!['onDontShowAgain']();
-                                  }
-                                },
-                                borderRadius: BorderRadius.circular(30),
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: isSmallScreen ? 12 : 24,
-                                    vertical: isSmallScreen ? 8 : 12,
+                        if (isInternetErrorEnabled)
+                          isDontShowAgainClicked
+                              ? Text(
+                                  'Больше не будем показывать!',
+                                  style: TextStyle(
+                                    color: const Color(0x99FFFFFF),
+                                    fontSize: buttonFontSize,
+                                    fontWeight: FontWeight.w500,
                                   ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0x19FFFFFF),
-                                    borderRadius: BorderRadius.circular(30),
-                                    border: Border.all(
-                                      color: const Color(0x33FFFFFF),
+                                )
+                              : InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      isDontShowAgainClicked = true;
+                                    });
+                                    if (widget
+                                            .contentProps?['onDontShowAgain'] !=
+                                        null) {
+                                      widget.contentProps!['onDontShowAgain']();
+                                    }
+                                  },
+                                  borderRadius: BorderRadius.circular(30),
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: isSmallScreen ? 12 : 24,
+                                      vertical: isSmallScreen ? 8 : 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0x19FFFFFF),
+                                      borderRadius: BorderRadius.circular(30),
+                                      border: Border.all(
+                                        color: const Color(0x33FFFFFF),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'Больше не показывать',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: buttonFontSize,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                   ),
-                                  child: Text(
-                                    'Больше не показывать',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: buttonFontSize,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
                                 ),
-                              ),
                       ],
                     ),
                   ),

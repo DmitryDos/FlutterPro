@@ -132,7 +132,7 @@ class CardsModel {
     );
 
     if (UserData.instance.showInternetError) {
-      list.add(ImageDTO(url: 'noInternet'));
+      _images.add(ImageDTO(url: 'noInternet'));
     }
 
     list.addAll(fromCache);
@@ -146,6 +146,13 @@ class CardsModel {
       _lightImageQueue.clear();
       _darkImageQueue.clear();
       cleanUpImages();
+      if (isOnline == true) {
+        if (UserData.instance.showInternetError) {
+          _images.add(ImageDTO(url: 'restoreInternet'));
+        } else {
+          fetchNewCard();
+        }
+      }
     }
   }
 

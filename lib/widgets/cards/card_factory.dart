@@ -7,6 +7,7 @@ import 'package:flutter_pro/widgets/cards/container/animated_card_container.dart
 import 'package:flutter_pro/widgets/cards/container/static_card_container.dart';
 import 'package:flutter_pro/widgets/cards/content/error_card_content.dart';
 import 'package:flutter_pro/widgets/cards/content/internet_card_content.dart';
+import 'package:flutter_pro/widgets/cards/content/no_internet_card_content.dart';
 import 'package:flutter_pro/widgets/cards/content/mystic_card_content.dart';
 import 'package:flutter_pro/widgets/cards/content/preload_card_content.dart';
 import 'package:flutter_pro/widgets/cards/content/simple_card_content.dart';
@@ -54,7 +55,7 @@ class CardFactory {
 
   static Map<String, dynamic>? _setProps(final CardType type) {
     final Map<String, dynamic> props = {};
-    if (type == CardType.internet) {
+    if (type == CardType.noInternet || type == CardType.restoreInternet) {
       props['onDontShowAgain'] = UserData.instance.removeInternetErrorCard;
     }
     return props;
@@ -62,7 +63,8 @@ class CardFactory {
 
   static CardType determineCardType(final ImageDTO imageData) {
     if (imageData.url == 'preload') return CardType.preload;
-    if (imageData.url == 'noInternet') return CardType.internet;
+    if (imageData.url == 'noInternet') return CardType.noInternet;
+    if (imageData.url == 'restoreInternet') return CardType.restoreInternet;
     if (imageData.url == 'error') return CardType.error;
     return CardType.regular;
   }
@@ -79,8 +81,11 @@ class CardFactory {
     switch (cardType) {
       case CardType.preload:
         return PreloadCardContent(height: cardHeight);
-      case CardType.internet:
-        return InternetCardContent(
+      case CardType.noInternet:
+        return NoInternetCardContent(
+            height: cardHeight, contentProps: contentProps);
+      case CardType.restoreInternet:
+        return RestoreInternetCardContent(
             height: cardHeight, contentProps: contentProps);
       case CardType.error:
         return ErrorCardContent(height: cardHeight);
@@ -157,4 +162,4 @@ class CardFactory {
       );
 }
 
-enum CardType { preload, internet, regular, error }
+enum CardType { preload, noInternet, restoreInternet, regular, error }
