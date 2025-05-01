@@ -67,7 +67,7 @@
 
 ## Скачать приложение
 
-Актуальная версия APK доступна по [этой ссылке](relese/app-release.apk).
+Актуальная версия APK доступна по [relese/app-release.apk](https://github.com/DmitryDos/FlutterPro/releases/tag/belldh_v1.2.0).
 
 ---
 ## Технологии
