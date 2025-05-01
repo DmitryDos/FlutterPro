@@ -6,10 +6,10 @@ import 'package:flutter_pro/providers/user_provider.dart';
 import 'package:http/http.dart' as http;
 
 import '../data/image_dto.dart';
-import '../utils/data_storage.dart';
+import '../data/datasources/data_storage.dart';
 
 class ImageService {
-  static final http.Client client = http.Client();
+  static http.Client client = http.Client();
   static String apiKey =
       "live_l3tS0mKRATK9w9QXexXfYZirsfQ3R8rwgQR2LXIAF6o8Esbij0ZYOkrhTP9teF1I";
 

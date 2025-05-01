@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:flutter_pro/providers/cards_provider.dart';
 import 'package:flutter_pro/providers/user_provider.dart';
 import 'package:flutter_pro/utils/utils.dart';
 import 'package:flutter_pro/widgets/interactive/footer_button.dart';
@@ -29,7 +30,8 @@ class Menu extends StatefulWidget {
 class MenuState extends State<Menu> {
   final String selectedBackground = UserData.instance.selectedBackground;
   final int backgroundsCount = 9;
-  bool isAnimationEnabled = true;
+  bool isAnimationEnabled = UserData.instance.isCardAnimated;
+  bool isInternetErrorEnabled = UserData.instance.showInternetError;
 
   void _openColorPicker(final BuildContext context) {
     Color currentColor = isHexColor(selectedBackground)
@@ -96,6 +98,7 @@ class MenuState extends State<Menu> {
   @override
   Widget build(final BuildContext context) {
     final userData = Provider.of<UserData>(context);
+    final catsProvider = Provider.of<LikedCatsProvider>(context);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -124,9 +127,16 @@ class MenuState extends State<Menu> {
                       value: UserData.instance.themeChanges),
                   const SizedBox(height: 20),
                   ActionButton(
-                      text: "Сбросить данные",
+                      text: "Сбросить статистику",
                       onPressed: () {
-                        UserData.instance.resetStats();
+                        userData.resetStats();
+                        setState(() {});
+                      }),
+                  const SizedBox(height: 20),
+                  ActionButton(
+                      text: "Очистить галерею",
+                      onPressed: () {
+                        catsProvider.clear();
                         setState(() {});
                       }),
                   const SizedBox(height: 20),
@@ -221,13 +231,30 @@ class MenuState extends State<Menu> {
                   const SizedBox(height: 20),
                   const SizedBox(width: 8),
                   FooterButton(
-                    text: "Переключить анимацию карточек",
+                    text: isAnimationEnabled
+                        ? "Динамичная анимация"
+                        : "Анимация отключена",
                     icon: isAnimationEnabled ? Icons.animation : Icons.pause,
                     onPressed: () {
                       setState(() {
                         isAnimationEnabled = !isAnimationEnabled;
                       });
                       userData.toggleCardAnimation();
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  const SizedBox(width: 8),
+                  FooterButton(
+                    text: isInternetErrorEnabled
+                        ? "Уведомления о плохом интернете"
+                        : "Уведомления отключены",
+                    icon:
+                        isInternetErrorEnabled ? Icons.animation : Icons.pause,
+                    onPressed: () {
+                      setState(() {
+                        isInternetErrorEnabled = !isInternetErrorEnabled;
+                      });
+                      userData.toggleInternetErrorCard();
                     },
                   ),
                 ],

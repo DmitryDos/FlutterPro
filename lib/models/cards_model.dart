@@ -1,25 +1,29 @@
-// card_manager.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_pro/data/image_dto.dart';
 import 'package:flutter_pro/providers/user_provider.dart';
 import 'package:flutter_pro/services/image_service.dart';
+import 'package:flutter_pro/services/cached_images_service.dart';
 
 class CardsModel {
+  var isOnline = true;
   final List<ImageDTO> _images = [];
-  final List<ImageDTO> _lightImageCache = [];
-  final List<ImageDTO> _darkImageCache = [];
-  final int _cacheThreshold = 6;
+  final List<ImageDTO> _lightImageQueue = [];
+  final List<ImageDTO> _darkImageQueue = [];
+  final int _queueThreshold = 6;
+  final CachedImagesService _cacheService;
 
-  CardsModel();
+  CardsModel({required final CachedImagesService cacheService})
+      : _cacheService = cacheService;
 
   List<ImageDTO> get images => _images;
-
-  List<ImageDTO> get lightImageCache => _lightImageCache;
-
-  List<ImageDTO> get darkImageCache => _darkImageCache;
+  List<ImageDTO> get lightImageQueue => _lightImageQueue;
+  List<ImageDTO> get darkImageQueue => _darkImageQueue;
 
   ImageDTO top() {
-    return _images[0];
+    if (_images.isNotEmpty) {
+      return _images[0];
+    }
+    return ImageDTO(url: 'error');
   }
 
   Future<void> preloadWelcomeCard() async {
@@ -28,84 +32,131 @@ class CardsModel {
     await preloadCards();
   }
 
+  Future<List<ImageDTO>> getCards(final int limit) async {
+    final hasInternet = await _cacheService.hasInternetConnection;
+    checkInternet(hasInternet);
+
+    final fromQueue = _getFromQueue(limit);
+    if (fromQueue.isNotEmpty) {
+      return fromQueue;
+    }
+
+    if (hasInternet) {
+      try {
+        final fromNetwork = await ImageService.fetchRandomImages(
+          url: ImageService.getUrl(count: limit),
+          count: limit,
+          onError: (final error) => debugPrint('Network error: $error'),
+        );
+
+        if (fromNetwork != null && fromNetwork.isNotEmpty) {
+          return fromNetwork;
+        }
+      } catch (e) {
+        return [ImageDTO(url: 'error')];
+      }
+    }
+
+    final fromCache = await _getFromCache(limit);
+    if (fromCache.isNotEmpty) {
+      return fromCache;
+    }
+    return [ImageDTO(url: 'error')];
+  }
+
   Future<void> preloadFirstCard() async {
-    ImageDTO? newImage = getFromCache();
-
-    if (newImage != null) {
-      _images.add(newImage);
-      return;
-    }
-
-    final url = ImageService.getUrl();
-    final images = await ImageService.fetchRandomImages(
-      url: url,
-      count: 1,
-      onError: (final error) => debugPrint(error),
-    );
-    if (images != null && images.isNotEmpty) {
-      newImage = images[0];
-    }
-
-    if (newImage != null) {
-      _images.add(newImage);
+    final cards = await getCards(1);
+    if (cards.isNotEmpty) {
+      _images.add(cards.first);
     }
     await preloadCards();
   }
 
   Future<void> preloadCards() async {
-    final newImages = await ImageService.fetchRandomImages(
-      url: ImageService.getUrl(count: _cacheThreshold),
-      count: _cacheThreshold,
-      onError: (final error) => debugPrint(error),
-    );
-
-    if (newImages != null) {
-      _images.addAll(newImages);
-    }
-
-    await populateCache();
-  }
-
-  Future<void> populateCache() async {
-    final cache =
-        UserData.instance.darkTheme ? _darkImageCache : _lightImageCache;
-
-    if (cache.length >= 2 * _cacheThreshold) return;
-
-    final images = await ImageService.fetchRandomImages(
-      url: ImageService.getUrl(count: _cacheThreshold),
-      count: _cacheThreshold,
-      onError: (final error) => debugPrint(error),
-    );
-
-    if (images != null) {
-      cache.addAll(images);
+    final newCards = await getCards(_queueThreshold);
+    if (newCards.isNotEmpty) {
+      _images.addAll(newCards);
     }
   }
 
   Future<void> fetchNewCard() async {
-    final newImage = getFromCache();
     UserData.instance.incrementSwipes();
-
-    if (newImage != null) {
-      _images.add(newImage);
+    final newCard = (await getCards(1)).firstOrNull;
+    if (newCard != null) {
+      _images.add(newCard);
     }
-
-    await populateCache();
+    if (_images.isEmpty) {
+      _images.add(ImageDTO(url: 'error'));
+    }
+    await _ensureQueueFilled();
   }
 
-  ImageDTO? getFromCache() {
-    final userData = UserData.instance;
+  List<ImageDTO> _getFromQueue(final int limit) {
+    final queue =
+        UserData.instance.darkTheme ? _darkImageQueue : _lightImageQueue;
+    final count = limit.clamp(0, queue.length);
+    return List.generate(count, (final i) => queue.removeAt(0));
+  }
 
-    if (userData.darkTheme && _darkImageCache.isNotEmpty) {
-      return _darkImageCache.removeAt(0);
-    } else if (!userData.darkTheme && _lightImageCache.isNotEmpty) {
-      return _lightImageCache.removeAt(0);
+  Future<void> _addToQueue(final List<ImageDTO> images) async {
+    final queue =
+        UserData.instance.darkTheme ? _darkImageQueue : _lightImageQueue;
+    queue.addAll(images);
+  }
+
+  Future<void> _ensureQueueFilled() async {
+    final hasInternet = await _cacheService.hasInternetConnection;
+    final queue =
+        UserData.instance.darkTheme ? _darkImageQueue : _lightImageQueue;
+    if (hasInternet && queue.length < _queueThreshold) {
+      final fromNetwork = await ImageService.fetchRandomImages(
+        url: ImageService.getUrl(count: _queueThreshold * 2),
+        count: _queueThreshold * 2,
+        onError: (final error) => debugPrint('Network error: $error'),
+      );
+      if (fromNetwork != null && fromNetwork.isNotEmpty) {
+        _addToQueue(fromNetwork);
+      }
+    } else if (!hasInternet && queue.length < _queueThreshold) {
+      final fromCache = await _getFromCache(_queueThreshold * 2);
+      _addToQueue(fromCache);
     }
-    return null;
+  }
+
+  Future<List<ImageDTO>> _getFromCache(final int limit) async {
+    final list = <ImageDTO>[];
+
+    final fromCache = await _cacheService.getCachedImages(
+      UserData.instance.darkTheme,
+      limit,
+    );
+
+    if (UserData.instance.showInternetError) {
+      list.add(ImageDTO(url: 'noInternet'));
+    }
+
+    list.addAll(fromCache);
+
+    return list;
+  }
+
+  void checkInternet(final bool hasInternet) {
+    if (isOnline != hasInternet) {
+      isOnline = hasInternet;
+      _lightImageQueue.clear();
+      _darkImageQueue.clear();
+      cleanUpImages();
+    }
   }
 
   void clearImages() {
     _images.clear();
+  }
+
+  void cleanUpImages() {
+    if (_images.isEmpty) return;
+    final firstCard = top();
+    _images.clear();
+    _images.add(firstCard);
   }
 }

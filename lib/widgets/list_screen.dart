@@ -1,6 +1,6 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_pro/widgets/interactive/background.dart';
+import 'package:flutter_pro/widgets/interactive/cached_image.dart';
 import 'package:flutter_pro/widgets/interactive/links.dart';
 import 'package:flutter_pro/widgets/interactive/return_button.dart';
 import 'package:intl/intl.dart';
@@ -22,6 +22,17 @@ class LikedCardsScreenState extends State<LikedCardsScreen> {
   final int backgroundsCount = 9;
   bool isAnimationEnabled = true;
   String searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final provider = Provider.of<LikedCatsProvider>(context, listen: false);
+    await provider.loadCats();
+  }
 
   @override
   Widget build(final BuildContext context) {
@@ -95,27 +106,10 @@ class LikedCardsScreenState extends State<LikedCardsScreen> {
                                     ),
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(6),
-                                      child: CachedNetworkImage(
-                                        imageUrl: image.url,
-                                        fit: BoxFit.cover,
-                                        placeholder:
-                                            (final context, final url) =>
-                                                Container(
-                                          height: 90,
-                                          width: 120,
-                                          color: Colors.grey[200],
-                                          child: const Center(
-                                            child: CircularProgressIndicator(
-                                                strokeWidth: 2),
-                                          ),
-                                        ),
-                                        errorWidget: (final context, final url,
-                                                final error) =>
-                                            Container(
-                                          color: Colors.grey[200],
-                                          child: const Icon(Icons.broken_image,
-                                              size: 20),
-                                        ),
+                                      child: CachedNetworkImageWithFallback(
+                                        url: image.url,
+                                        height: 90,
+                                        width: 120,
                                       ),
                                     ),
                                   ),
@@ -147,8 +141,7 @@ class LikedCardsScreenState extends State<LikedCardsScreen> {
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.delete, size: 20),
-                                    onPressed: () =>
-                                        provider.removeCat(image.id),
+                                    onPressed: () => provider.removeCat(image),
                                   ),
                                 ],
                               ),

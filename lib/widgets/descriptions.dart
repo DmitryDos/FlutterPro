@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_pro/data/image_dto.dart';
+import 'package:flutter_pro/widgets/interactive/cached_image.dart';
 
 class ImageDescriptionScreen extends StatelessWidget {
   final ImageDTO imageData;
@@ -24,11 +25,10 @@ class ImageDescriptionScreen extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(20),
-                    child: Image.network(
-                      imageData.url,
+                    child: CachedNetworkImageWithFallback(
+                      url: imageData.url,
                       width: double.infinity,
                       height: 600,
-                      fit: BoxFit.cover,
                     ),
                   ),
                   const SizedBox(height: 16),

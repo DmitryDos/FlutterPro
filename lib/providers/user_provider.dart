@@ -13,6 +13,7 @@ class UserData extends ChangeNotifier {
   int _themeChanges = 0;
   bool _darkTheme = true;
   bool _isCardAnimated = true;
+  bool _showInternetError = true;
   String _selectedBackground = 'assets/backgrounds/ground0.jpg';
 
   String get swipes => _swipes.toString();
@@ -20,10 +21,23 @@ class UserData extends ChangeNotifier {
   String get themeChanges => _themeChanges.toString();
   bool get darkTheme => _darkTheme;
   bool get isCardAnimated => _isCardAnimated;
+  bool get showInternetError => _showInternetError;
   String get selectedBackground => _selectedBackground;
 
   void toggleCardAnimation() {
     _isCardAnimated = !_isCardAnimated;
+    _saveData();
+    notifyListeners();
+  }
+
+  void toggleInternetErrorCard() {
+    _showInternetError = !_showInternetError;
+    _saveData();
+    notifyListeners();
+  }
+
+  void removeInternetErrorCard() {
+    _showInternetError = false;
     _saveData();
     notifyListeners();
   }
@@ -68,6 +82,7 @@ class UserData extends ChangeNotifier {
     await prefs.setInt('themeChanges', _themeChanges);
     await prefs.setBool('darkTheme', _darkTheme);
     await prefs.setBool('isCardAnimated', _isCardAnimated);
+    await prefs.setBool('showInternetError', _showInternetError);
     await prefs.setString('selectedBackground', _selectedBackground);
   }
 
@@ -78,6 +93,7 @@ class UserData extends ChangeNotifier {
     _themeChanges = prefs.getInt('themeChanges') ?? 0;
     _darkTheme = prefs.getBool('darkTheme') ?? true;
     _isCardAnimated = prefs.getBool('isCardAnimated') ?? true;
+    _showInternetError = prefs.getBool('showInternetError') ?? true;
     _selectedBackground = prefs.getString('selectedBackground') ??
         'assets/backgrounds/ground0.jpg';
     notifyListeners();

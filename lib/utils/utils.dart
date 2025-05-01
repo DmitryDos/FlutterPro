@@ -57,6 +57,12 @@ void showNetworkErrorDialog(final BuildContext context,
   );
 }
 
+bool isLocalFile(final String url) {
+  return url.startsWith('/') ||
+      url.startsWith('file://') ||
+      url.startsWith('assets/');
+}
+
 // Images Crop around Face - Not Work
 // Future<ui.Image?> cropImageAroundFace(String imageUrl) async {
 //   FaceDetector? faceDetector; // Объявляем переменную здесь

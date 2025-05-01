@@ -1,42 +1,43 @@
 import 'package:flutter/cupertino.dart';
-
-import '../data/image_dto.dart';
+import 'package:flutter_pro/data/image_dto.dart';
+import 'package:flutter_pro/providers/user_provider.dart';
+import 'package:flutter_pro/services/cached_images_service.dart';
 
 class LikedCatsProvider extends ChangeNotifier {
-  LikedCatsProvider._privateConstructor();
-
-  static final LikedCatsProvider _instance =
-      LikedCatsProvider._privateConstructor();
-
-  static LikedCatsProvider get instance => _instance;
-
-  final List<UniqueImageDTO> _likedCats = [];
-  var count = 0;
-
-  List<UniqueImageDTO> filter(final String name) {
-    return _likedCats.reversed
-        .where((final image) => image.name
-        .toLowerCase()
-        .contains(name.toLowerCase()))
-        .toList();
-
+  CachedImagesService? _service;
+  void initService(final CachedImagesService service) {
+    _service = service;
+    loadCats();
   }
 
-  void addCat(final ImageDTO image) {
-    final uImage = UniqueImageDTO(
-      id: count++,
-      date: DateTime.now(),
-      url: image.url,
-      title: image.title,
-      description: image.description,
-      name: image.name,
-    );
-    _likedCats.add(uImage);
+  List<UniqueImageDTO> _likedCats = [];
+
+  Future<void> loadCats() async {
+    _likedCats = await _service!.getImages();
     notifyListeners();
   }
 
-  void removeCat(final int id) {
-    _likedCats.removeWhere((final image) => image.id == id);
+  List<UniqueImageDTO> filter(final String name) {
+    return _likedCats
+        .where((final image) =>
+            image.name.toLowerCase().contains(name.toLowerCase()))
+        .toList();
+  }
+
+  Future<void> addCat(final ImageDTO image) async {
+    _service!.saveImage(image, UserData.instance.darkTheme);
+  }
+
+  Future<void> removeCat(final UniqueImageDTO image) async {
+    _service!.removeUImage(image);
+    _likedCats.removeWhere(
+        (final img) => img.url == image.url && img.date == image.date);
+    notifyListeners();
+  }
+
+  Future<void> clear() async {
+    _likedCats.clear();
+    _service!.clear();
     notifyListeners();
   }
 }

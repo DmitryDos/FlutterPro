@@ -25,11 +25,9 @@ class ImageDTO {
 }
 
 class UniqueImageDTO extends ImageDTO {
-  final int id;
   final DateTime date;
 
   UniqueImageDTO({
-    required this.id,
     required this.date,
     super.url,
     super.name,
@@ -38,7 +36,6 @@ class UniqueImageDTO extends ImageDTO {
     super.description,
   });
 
-  // Переопределяем метод toMap, чтобы добавить поле date
   @override
   Map<String, String> toMap() {
     return {

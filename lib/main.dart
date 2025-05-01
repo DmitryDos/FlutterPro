@@ -1,15 +1,18 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_pro/data/image_dto.dart';
 import 'package:flutter_pro/models/cards_model.dart';
 import 'package:flutter_pro/providers/cards_provider.dart';
+import 'package:flutter_pro/services/cached_images_service.dart';
+import 'package:flutter_pro/utils/utils.dart';
 import 'package:flutter_pro/widgets/header.dart';
 import 'package:flutter_pro/widgets/interactive/background.dart';
 import 'package:flutter_pro/widgets/list_screen.dart';
 import 'package:flutter_pro/widgets/pulsular_loader.dart';
 import 'package:flutter_pro/providers/user_provider.dart';
 import 'package:provider/provider.dart';
-import 'widgets/cards/card_provider.dart';
+import 'widgets/cards/card_factory.dart';
 import 'widgets/footer.dart';
 import 'widgets/menu_screen.dart';
 import 'widgets/descriptions.dart';
@@ -26,8 +29,12 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (final context) => UserData.instance),
-        ChangeNotifierProvider(
-            create: (final context) => LikedCatsProvider.instance),
+        Provider(create: (final context) => CachedImagesService()),
+        ChangeNotifierProxyProvider<CachedImagesService, LikedCatsProvider>(
+          create: (final context) => LikedCatsProvider(),
+          update: (final context, final cachedService, final provider) =>
+              provider!..initService(cachedService),
+        ),
       ],
       child: MaterialApp(
         title: 'Cat Tinder',
@@ -46,7 +53,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final CardsModel _cardsModel = CardsModel();
+  late final CardsModel _cardsModel;
   bool isLoading = false;
 
   double offsetX = 0;
@@ -87,8 +94,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
-    _cardsModel.preloadWelcomeCard();
     super.initState();
+    final cachedService =
+        Provider.of<CachedImagesService>(context, listen: false);
+    _cardsModel = CardsModel(cacheService: cachedService);
+    _cardsModel.preloadWelcomeCard();
   }
 
   @override
@@ -139,9 +149,8 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
 
-    if (isLiked == 1 && _cardsModel.top().url != 'preload') {
-      UserData.instance.incrementLikes();
-      LikedCatsProvider.instance.addCat(_cardsModel.top());
+    if (isLiked == 1) {
+      saveLikedCard(_cardsModel.top());
     }
 
     Future.delayed(const Duration(milliseconds: 100), () {
@@ -149,14 +158,23 @@ class _MyHomePageState extends State<MyHomePage> {
         if (_cardsModel.images.isNotEmpty) {
           _cardsModel.images.removeAt(0);
         }
-        resetCardPosition();
       });
-
+      resetCardPosition();
       if (_cardsModel.images.length < 2) {
         _cardsModel.preloadCards();
       }
       _cardsModel.fetchNewCard();
     });
+  }
+
+  void saveLikedCard(final ImageDTO image) {
+    final cardType = CardFactory.determineCardType(image);
+    if (cardType == CardType.regular && !isLocalFile(image.url)) {
+      UserData.instance.incrementLikes();
+      final likedProvider =
+          Provider.of<LikedCatsProvider>(context, listen: false);
+      likedProvider.addCat(image);
+    }
   }
 
   void resetCardPosition() {
@@ -254,7 +272,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     color: userData.darkTheme ? Colors.pink : Colors.purple)
                 : Stack(children: [
                     for (var i = 0; i < _cardsModel.images.length; i++)
-                      getCard(
+                      CardFactory.create(
                         imageData: _cardsModel
                             .images[_cardsModel.images.length - i - 1],
                         number: _cardsModel.images.length - i - 1,
@@ -266,6 +284,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         angle: angle,
                         darkTheme: userData.darkTheme,
                         isAnimated: userData.isCardAnimated,
+                        context: context,
                       ),
                   ]),
           ),

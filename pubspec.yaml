@@ -54,15 +54,25 @@ dependencies:
   intl: ^0.18.1
   dio: ^5.0.0
   path_provider: ^2.0.11
+  path: ^1.8.3
   permission_handler: ^11.4.0
   share_plus: ^10.1.4
   flutter_launcher_icons: ^0.14.3
   flutter_native_splash: ^2.4.6
+  flutter_cache_manager: ^3.3.0
+  drift: ^2.26.0
+  sqlite3_flutter_libs: ^0.5.0
+  connectivity_plus: ^5.0.2
+  test: ^1.24.0
+  mocktail: ^1.0.4
+  flutter_test:
+    sdk: flutter
 #  google_mlkit_face_detection: ^0.12.0
 
 dev_dependencies:
-  flutter_test:
-    sdk: flutter
+  bloc_test: ^9.1.0
+  drift_dev: ^2.13.0
+  build_runner: ^2.4.6
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -128,12 +138,13 @@ flutter:
   # see https://flutter.dev/to/font-from-package
 include: package:lints/recommended.yaml
 
-#analyzer:
-#  exclude: [build/**]
-#  language:
-#    strict-inference: true
-#    strict-raw-types: true
-#
+analyzer:
+  errors:
+    depend_on_referenced_packages: ignore
+  language:
+    strict-inference: true
+    strict-raw-types: true
+
 #linter:
 #  rules:
 #    - cancel_subscriptions
